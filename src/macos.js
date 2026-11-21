@@ -70,9 +70,9 @@ module.exports = function make({ app, label, home }) {
   /**
    * Start something at login, and keep it going (a LaunchAgent: just for you,
    * no administrator). args: what to run. at: { Hour, Minute } runs it once a
-   * day instead of keeping it going.
+   * day instead of keeping it going; every: seconds runs it that often.
    */
-  function startAgent({ args, l = label, at = null, keepAlive = !at, node = process.execPath, script, env = {} }) {
+  function startAgent({ args, l = label, at = null, every = 0, keepAlive = !at && !every, node = process.execPath, script, env = {} }) {
     if (!MAC) return { ok: false, why: 'This part is for Macs.' };
     const file = plistPath(l);
     const log = path.join(home(), `${l.split('.').pop()}.log`);
@@ -85,7 +85,7 @@ module.exports = function make({ app, label, home }) {
   <key>ProgramArguments</key>
   <array><string>${x(node)}</string><string>${x(script)}</string>${args.map((a) => `<string>${x(a)}</string>`).join('')}</array>
   <key>EnvironmentVariables</key><dict>${envXml}</dict>
-  ${at ? `<key>StartCalendarInterval</key><dict>${Object.entries(at).map(([k, v]) => `<key>${x(k)}</key><integer>${Number(v)}</integer>`).join('')}</dict>` : '<key>RunAtLoad</key><true/>'}
+  ${at ? `<key>StartCalendarInterval</key><dict>${Object.entries(at).map(([k, v]) => `<key>${x(k)}</key><integer>${Number(v)}</integer>`).join('')}</dict>` : every ? `<key>StartInterval</key><integer>${Math.round(every)}</integer>\n  <key>RunAtLoad</key><true/>` : '<key>RunAtLoad</key><true/>'}
   ${keepAlive ? '<key>KeepAlive</key><dict><key>SuccessfulExit</key><false/></dict>\n  <key>ThrottleInterval</key><integer>10</integer>' : ''}
   <key>ProcessType</key><string>${keepAlive ? 'Background' : 'Interactive'}</string>
   <key>StandardOutPath</key><string>${x(log)}</string>
