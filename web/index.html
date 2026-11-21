@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>magpie</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="magpie.css">
+</head>
+<body>
+<canvas id="scene" aria-hidden="true"></canvas>
+
+<main class="glass wrap">
+  <header class="top">
+    <canvas id="pica" width="12" height="9" aria-hidden="true"></canvas>
+    <h1>magpie</h1>
+    <span class="pill" id="state"><i></i><span id="stateText">Keeping what you copy</span></span>
+    <span class="hint" id="hint"><kbd id="keyCap">⌃⌥V</kbd> anywhere opens the picker</span>
+    <button class="icon" id="settingsBtn" title="Settings" aria-label="Settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg></button>
+  </header>
+
+  <div class="find">
+    <input id="q" type="search" placeholder="Search everything you copied" autocomplete="off" spellcheck="false" aria-label="Search">
+    <select id="app" aria-label="Copied from"><option value="">From any app</option></select>
+  </div>
+  <nav class="chips" id="chips" aria-label="Show"></nav>
+  <div class="bar" id="bar" hidden><span id="barText"></span><span class="sp"></span>
+    <select id="sep" class="btn" aria-label="Put between them"><option value="line">one per line</option><option value="blank">a blank line between</option><option value="space">spaces between</option><option value="comma">commas between</option></select>
+    <button class="btn main" id="mergeBtn">Copy them together</button><button class="btn" id="pinSel">Pin</button><button class="btn danger" id="delSel">Forget</button><button class="btn" id="noneSel">Clear</button>
+  </div>
+  <ul class="list" id="list" aria-label="What you copied"></ul>
+  <div class="empty" id="empty" hidden></div>
+  <footer class="foot"><span id="counts"></span><span class="sp"></span><span>Nothing leaves this computer.</span><button class="linkish" id="pauseBtn">Pause for 30 min</button></footer>
+</main>
+
+<dialog id="settings"><div class="glass">
+  <h2>Settings</h2>
+  <div class="set"><b>How many to keep</b><small>The oldest go when there are more (pinned ones never do).</small><div class="row"><input type="number" id="max" min="20" max="5000" step="10"><button class="btn" id="maxSave">Save</button></div></div>
+  <div class="set" id="keySet"><b>Key combo</b><small>Press it in any app to open the picker. Use ctrl, option or cmd with a letter, like ctrl+option+v.</small><div class="row"><input type="text" id="key" spellcheck="false" style="width:180px"><button class="btn" id="keySave">Save</button><span id="keyNote" class="small"></span></div></div>
+  <div class="set"><b>Apps magpie ignores</b><small>Anything copied in these is never kept. Password managers are on the list from the start. Click one to stop ignoring it, or an app below to add it.</small><div class="apps" id="ignored"></div><div class="apps" id="addApps" style="margin-top:8px"></div></div>
+  <div class="set"><b>Passwords and keys</b><small>magpie skips anything a password manager marks as secret, and anything that looks like a password, an API key or a card number.</small><label class="row"><input type="checkbox" id="keepSecrets"> Keep things that only look like passwords anyway</label></div>
+  <div class="set"><b>Start over</b><small>Forget everything you copied. Pinned things stay.</small><button class="btn danger" id="clearAll">Forget everything</button></div>
+  <div class="close"><button class="btn main" id="setClose">Done</button></div>
+</div></dialog>
+
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script id="config" type="application/json">__CONFIG__</script>
+<script src="scene.js"></script>
+<script src="rooftops.js"></script>
+<script src="magpie.js"></script>
+</body>
+</html>
