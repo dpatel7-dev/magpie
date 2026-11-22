@@ -109,8 +109,24 @@ async function runHere(which) {
   await new Promise(() => {});
 }
 
+/** After an update: restart the background part with the new code, and add anything new (like the side panel). */
+function ensureCurrent() {
+  if (!MAC || process.env.MAGPIE_FAKE_CLIPBOARD) return;
+  const stamp = path.join(Store.home(), 'set-up-version');
+  let was = '';
+  try { was = fs.readFileSync(stamp, 'utf8').trim(); } catch { /* never */ }
+  if (was === pkg.version) return;
+  try {
+    const Mac = require('./mac');
+    if (!Mac.agentState().installed) return; // not turned on yet: magpie on does it all
+    Mac.setUp(pkg.version, Store.settings.load().key);
+    fs.writeFileSync(stamp, pkg.version);
+  } catch { /* the next command tries again */ }
+}
+
 async function main(argv) {
   const [cmd, ...rest] = argv;
+  if (!['serve', 'uninstall', 'off', 'stop', '--version', '-v', 'version', 'help', '--help', '-h'].includes(cmd)) ensureCurrent();
   switch (cmd) {
     case undefined: return home();
     case '--version': case '-v': case 'version': out(`magpie ${pkg.version}`); return;
@@ -319,6 +335,7 @@ async function on() {
   const key = Store.settings.load().key;
   const r = Mac.setUp(pkg.version, key);
   if (!r.ok) throw new Error(`macOS didn't start magpie (${r.why}). You can still run it in a window: magpie serve`);
+  fs.writeFileSync(path.join(Store.home(), 'set-up-version'), pkg.version);
   const k = Mac.setKey(key);
   out(`  ${ok('✓')} magpie keeps what you copy from now on, and every time you log in.`);
   let p = Mac.panel.status();
