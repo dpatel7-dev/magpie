@@ -1,6 +1,7 @@
 # Changelog
 
 ## 1.1.0
+- The moving scene behind the window can no longer stumble on its very first frame.
 - The picker is now a side panel: a narrow strip of frosted glass at the right of the screen that floats over your work without taking it over. The app you were in stays the active one.
 - A magpie in the menu bar (top right of the screen): click it to open or close the panel. It always works, even when a key combo doesn't.
 - Everything works from the panel: copy, copy changed (tidy spaces, UPPERCASE, a link without trackers…, each with a preview), pin, name, open a link, send to your devices, forget. New copies show up while it's open.
