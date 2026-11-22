@@ -101,6 +101,16 @@ function show() {
 }
 function hide() { if (panel.isVisible) { panel.orderOut(null); js('window.panelHidden && window.panelHidden()'); } note({ ok: true }); }
 function toggle() { if (panel.isVisible) hide(); else show(); }
+// light or dark, from pca's setting (auto: like the Mac). The page inside follows the panel.
+var lastLook = null;
+function look() {
+  if (!cfg.lookFile || !panel) return;
+  var v = readText(cfg.lookFile).trim();
+  if (v === lastLook) return;
+  lastLook = v;
+  var name = v === 'light' ? 'NSAppearanceNameAqua' : v === 'dark' ? 'NSAppearanceNameDarkAqua' : '';
+  try { panel.setAppearance(name ? $.NSAppearance.appearanceNamed($(name)) : null); } catch (e) {}
+}
 function tick() {
   try {
     var c = readText(cfg.cmdFile).trim();
@@ -109,7 +119,7 @@ function tick() {
       var what = c.split(' ')[1] || '';
       if (what === 'show') show(); else if (what === 'hide') hide(); else if (what === 'toggle') toggle(); else if (what === 'reload') { loaded = ''; if (panel.isVisible) show(); } else if (what === 'quit') { note({ ok: false, quit: true }); $.NSApplication.sharedApplication.terminate(null); }
     }
-    if (++beat % 12 === 0) note({ ok: true });
+    if (++beat % 12 === 0) { note({ ok: true }); look(); }
   } catch (e) { note({ ok: false, err: String(e) }); }
 }
 function claimHotkey() {
@@ -178,6 +188,7 @@ function run(argv) {
   claimHotkey();
   lastSeq = readText(cfg.cmdFile).trim(); // don't replay an old request
   keepTarget = $.NSTimer.scheduledTimerWithTimeIntervalTargetSelectorUserInfoRepeats(0.15, target, 'tick:', null, true);
+  look();
   note({ ok: true, started: true });
   if (cfg.showAtStart) show();
   app.run;
@@ -204,7 +215,7 @@ module.exports = function Panel({ app, home, title = app, width = 380, height = 
     if (icon) fs.writeFileSync(f.icon, png(icon.grid, icon.ink, { scale: 2, size: 36 }));
     if (url) setUrl(url);
     const key = combo ? carbonKey(combo) : null;
-    fs.writeFileSync(f.conf, JSON.stringify({ app, title, width, height, material, tooltip: tooltip || title, icon: f.icon, urlFile: f.url, cmdFile: f.cmd, statusFile: f.status, hotkey: key, showAtStart }, null, 1));
+    fs.writeFileSync(f.conf, JSON.stringify({ app, title, width, height, material, tooltip: tooltip || title, icon: f.icon, urlFile: f.url, cmdFile: f.cmd, statusFile: f.status, hotkey: key, showAtStart, lookFile: require('./look').file() }, null, 1));
     return Mac.startAgent({ program: ['/usr/bin/osascript', '-l', 'JavaScript', f.host, f.conf], keepAlive: true, interactive: true });
   }
 
