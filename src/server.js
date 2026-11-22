@@ -72,6 +72,8 @@ async function start({ port, watch = true, log = (s) => process.stdout.write(`${
   if (!server) throw new Error("magpie couldn't find a free port.");
   fs.writeFileSync(portFile(), String(server.port));
   const base = `/${sec}`;
+  // the side panel shows the picker from this magpie (its address can change)
+  try { const P = require('./mac').panel; P.setUrl(`${server.url}pick?panel=1`); if (P.status().running) P.reload(); } catch (e) { log(`side panel: ${e.message}`); }
 
   async function api(what, b) {
     clips.reload();
@@ -104,7 +106,24 @@ async function start({ port, watch = true, log = (s) => process.stdout.write(`${
         if (b.keep) { clips.add({ text, app: 'magpie', bundle: 'dev.dpatel7.magpie', at: Date.now() }, { ...s, pausedUntil: 0 }); }
         return { text, counts: K.counts(text) };
       }
-      case 'ways': { const c = need(); return { ways: c.text ? K.transformsFor(c.text, c.kind) : [], counts: K.counts(c.text) }; }
+      case 'ways': {
+        const c = need();
+        const ways = c.text ? K.transformsFor(c.text, c.kind).map((w) => { let preview = ''; try { preview = K.transform(c.text, w.id).replace(/\s+/g, ' ').slice(0, 60); } catch { /* none */ } return { ...w, preview }; }) : [];
+        return { ways, counts: K.counts(c.text) };
+      }
+      case 'open': {
+        const c = need();
+        const url = String(c.text || '').trim();
+        if (!/^https?:\/\/\S+$/i.test(url)) throw new Error("That isn't a web address.");
+        require('./mac').open(url);
+        return { ok: true };
+      }
+      case 'window': Open.openWindow(`${server.url}`, { width: 1180, height: 820 }); return { ok: true };
+      case 'panel': {
+        const P = require('./mac').panel;
+        if (b.do === 'hide') P.hide(); else if (b.do === 'show') await P.show(); else P.toggle();
+        return { ok: true };
+      }
       case 'full': { const c = need(); return { text: c.text || '' }; }
       case 'pin': { const c = need(); return { clip: view(clips.pin(c.id, b.on !== false), base) }; }
       case 'name': { const c = need(); return { clip: view(clips.rename(c.id, b.name), base) }; }
@@ -135,7 +154,7 @@ async function start({ port, watch = true, log = (s) => process.stdout.write(`${
         return { ok: true, said: (r.stdout || '').trim() };
       }
       case 'status': return status(s);
-      case 'picker': return { ok: openPicker() };
+      case 'picker': return { ok: await openPicker() };
       case 'close': return { ok: true };
       default: throw Object.assign(new Error(`magpie doesn't know "${what}".`), { status: 404 });
     }
@@ -149,14 +168,13 @@ async function start({ port, watch = true, log = (s) => process.stdout.write(`${
     };
   }
 
-  /** The little picker: small, in the middle of the screen, over whatever you were doing. */
-  function openPicker() {
+  /** The picker: the side panel if it's running; otherwise a narrow window at the right of the screen. */
+  async function openPicker() {
     const Mac = require('./mac');
+    if (Mac.MAC && (await Mac.panel.show())) return true;
     lastFront = Mac.frontmost();
-    const scr = Mac.screen() || { w: 1440, h: 900 };
-    const w = 460, h = 560;
     if (!Open.canWindow() && Mac.MAC) return chooseNatively(clips.reload(), lastFront);
-    return Open.openWindow(`${server.url}pick`, { width: w, height: h, x: (scr.w - w) / 2, y: Math.max(60, (scr.h - h) / 3) });
+    return Mac.panel.openSide(`${server.url}pick`);
   }
 
   if (watch) {

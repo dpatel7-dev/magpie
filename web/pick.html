@@ -7,105 +7,249 @@
 <title>magpie</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <style>
-/* The picker: small and quick. Type to find, Enter to copy, and it's gone. */
-:root { color-scheme: light dark; --paper: #fff; --ink: #16181d; --muted: #646b78; --faint: #9aa1ad; --line: rgba(22, 24, 29, .09); --field: #f4f5f7; --pick: rgba(47, 98, 184, .1); --blue: #2f62b8;
-  --sheen: linear-gradient(180deg, #2f62b8, #1f7f78 55%, #6a4fd8); --mono: ui-monospace, "SF Mono", Menlo, monospace; }
-@media (prefers-color-scheme: dark) { :root { --paper: #000; --ink: #eef0f4; --muted: #a3aab8; --faint: #6b7282; --line: rgba(255, 255, 255, .1); --field: #14161d; --pick: rgba(127, 176, 255, .14); --blue: #7fb0ff;
-  --sheen: linear-gradient(180deg, #7fb0ff, #5fd6c4 55%, #a993ff); } }
+/* The side panel: a narrow strip at the right of the screen. In the panel the
+   Mac's own frosted glass shows through (the page is see-through); in a
+   browser window it gets a plain background instead. Everything you can do to
+   a clip is right here: copy it, copy it changed, pin it, name it, send it,
+   forget it. */
+:root { color-scheme: light dark; --ink: #16181d; --muted: #5d6471; --faint: #8f96a3; --line: rgba(22, 24, 29, .08); --card: rgba(255, 255, 255, .55); --cardon: rgba(255, 255, 255, .92); --edge: rgba(22, 24, 29, .07);
+  --blue: #2f62b8; --teal: #1f7f78; --violet: #6a4fd8; --sheen: linear-gradient(115deg, #2f62b8, #1f7f78 55%, #6a4fd8); --ok: #2f8f55; --bad: #c2413b; --mono: ui-monospace, "SF Mono", Menlo, monospace;
+  --k-link: #2f62b8; --k-code: #6a4fd8; --k-color: #c2713a; --k-email: #1f7f78; --k-text: #646b78; --k-image: #b8458f; --k-files: #8a6a2f; --k-number: #2f8f55; --k-path: #8a6a2f; --k-phone: #1f7f78; }
+@media (prefers-color-scheme: dark) { :root { --ink: #eef0f4; --muted: #aab1be; --faint: #737a8a; --line: rgba(255, 255, 255, .08); --card: rgba(255, 255, 255, .05); --cardon: rgba(255, 255, 255, .12); --edge: rgba(255, 255, 255, .08);
+  --blue: #7fb0ff; --teal: #5fd6c4; --violet: #a993ff; --sheen: linear-gradient(115deg, #7fb0ff, #5fd6c4 55%, #a993ff);
+  --k-link: #7fb0ff; --k-code: #a993ff; --k-color: #f0a46a; --k-email: #5fd6c4; --k-text: #aab1be; --k-image: #f08ccf; --k-files: #d9b56a; --k-number: #79d69b; --k-path: #d9b56a; --k-phone: #5fd6c4; } }
 * { box-sizing: border-box; }
-html, body { margin: 0; height: 100%; }
-body { background: var(--paper); color: var(--ink); font: 14px/1.4 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden; -webkit-font-smoothing: antialiased; }
-header { display: flex; align-items: center; gap: 10px; padding: 12px 12px 8px; }
-#pica { width: 28px; height: 21px; image-rendering: pixelated; flex: none; }
-input { flex: 1; min-width: 0; font: inherit; font-size: 17px; border: 0; outline: none; background: none; padding: 6px 2px; color: var(--ink); }
-.tabs { display: flex; gap: 4px; padding: 0 12px 8px; border-bottom: 1px solid var(--line); }
-.tabs button { border: 0; background: none; color: var(--muted); font: 600 12px/1 inherit; padding: 5px 8px; border-radius: 7px; cursor: pointer; }
-.tabs button[aria-pressed=true] { background: var(--pick); color: var(--ink); }
-ul { list-style: none; margin: 0; padding: 6px; overflow: auto; flex: 1; }
-li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 0 8px; padding: 7px 8px 7px 6px; border-radius: 9px; cursor: pointer; position: relative; }
-li.on { background: var(--pick); }
-li.on::before { content: ""; position: absolute; left: 0; top: 7px; bottom: 7px; width: 3px; border-radius: 3px; background: var(--sheen); }
-.n { font: 600 11px/1.9 var(--mono); color: var(--faint); text-align: center; }
-.t { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.t.code { font: 12.5px/1.6 var(--mono); }
-.t img { height: 34px; border-radius: 5px; vertical-align: middle; border: 1px solid var(--line); }
-.t .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; border: 1px solid var(--line); }
-.m { grid-column: 2; color: var(--faint); font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.m .gem { display: inline-block; width: 7px; height: 7px; transform: rotate(45deg); background: var(--sheen); margin-right: 5px; border-radius: 1px; }
-footer { display: flex; gap: 12px; padding: 8px 14px; border-top: 1px solid var(--line); color: var(--faint); font-size: 11.5px; }
-footer b { color: var(--muted); font-weight: 600; }
-.done { position: fixed; inset: 0; display: grid; place-items: center; background: var(--paper); font-size: 17px; font-weight: 650; }
-.done span { color: var(--muted); font-weight: 400; font-size: 14px; display: block; text-align: center; margin-top: 4px; }
-.empty { padding: 30px 18px; text-align: center; color: var(--muted); }
 [hidden] { display: none !important; }
+html, body { margin: 0; height: 100%; }
+body { background: transparent; color: var(--ink); font: 13.5px/1.4 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden; -webkit-font-smoothing: antialiased; -webkit-user-select: none; user-select: none; cursor: default; }
+body.window { background: #f4f5f7; }
+@media (prefers-color-scheme: dark) { body.window { background: #121318; } }
+button { font: inherit; color: inherit; cursor: pointer; }
+header { display: flex; align-items: center; gap: 9px; padding: 14px 12px 8px 14px; }
+#pica { width: 28px; height: 21px; image-rendering: pixelated; flex: none; }
+.find { flex: 1; min-width: 0; display: flex; align-items: center; background: var(--card); border: 1px solid var(--edge); border-radius: 10px; padding: 0 9px; }
+.find input { flex: 1; min-width: 0; font: inherit; font-size: 14px; border: 0; outline: none; background: none; padding: 7px 0; color: var(--ink); -webkit-user-select: text; user-select: text; }
+.find kbd { font: 10.5px var(--mono); color: var(--faint); }
+.more { border: 0; background: none; width: 28px; height: 28px; border-radius: 8px; color: var(--muted); font-size: 16px; line-height: 1; }
+.more:hover { background: var(--card); }
+.chips { display: flex; gap: 4px; padding: 0 12px 8px 14px; overflow-x: auto; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chips button { border: 1px solid transparent; background: none; color: var(--muted); font-size: 12px; font-weight: 600; padding: 4px 9px; border-radius: 999px; white-space: nowrap; }
+.chips button[aria-pressed=true] { background: var(--cardon); border-color: var(--edge); color: var(--ink); }
+.paused { margin: 0 12px 8px 14px; padding: 7px 10px; border-radius: 9px; background: rgba(242, 193, 78, .18); font-size: 12px; display: flex; align-items: center; gap: 8px; }
+.paused button { margin-left: auto; border: 0; background: none; color: var(--blue); font-weight: 600; font-size: 12px; }
+ul { list-style: none; margin: 0; padding: 2px 10px 10px; overflow-y: auto; overflow-x: hidden; flex: 1; display: grid; align-content: start; gap: 4px; }
+li { border-radius: 11px; padding: 8px 10px 8px 10px; position: relative; background: var(--card); border: 1px solid transparent; }
+li.on { background: var(--cardon); border-color: var(--edge); box-shadow: 0 1px 2px rgba(0, 0, 0, .05); }
+li.on::before { content: ""; position: absolute; left: -1px; top: 9px; bottom: 9px; width: 3px; border-radius: 3px; background: var(--sheen); }
+.row { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; gap: 8px; align-items: start; }
+.ic { font: 700 10px/18px var(--mono); text-align: center; color: var(--c); }
+.t { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
+li.on .t { -webkit-line-clamp: 8; }
+.t.code { font: 12px/1.5 var(--mono); white-space: pre-wrap; }
+.t b { font-weight: 650; }
+.t img { max-width: 100%; max-height: 120px; border-radius: 6px; display: block; border: 1px solid var(--edge); }
+.sw { display: inline-block; width: 13px; height: 13px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; border: 1px solid var(--edge); }
+.n { font: 600 10.5px/18px var(--mono); color: var(--faint); }
+.m { grid-column: 2 / -1; color: var(--faint); font-size: 11px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gem { display: inline-block; width: 7px; height: 7px; transform: rotate(45deg); background: var(--sheen); margin-right: 5px; border-radius: 1px; }
+.acts { display: flex; flex-wrap: wrap; gap: 5px; margin: 8px 0 1px 26px; }
+.acts button { border: 1px solid var(--edge); background: var(--card); border-radius: 8px; padding: 4px 9px; font-size: 12px; font-weight: 600; }
+.acts button.main { background: var(--blue); border-color: var(--blue); color: #fff; }
+@media (prefers-color-scheme: dark) { .acts button.main { color: #0b1222; } }
+.acts button.del { color: var(--bad); }
+.acts button:hover { border-color: var(--faint); }
+.ways { display: grid; gap: 2px; margin: 6px 0 0 26px; }
+.ways button { text-align: left; border: 0; background: none; padding: 5px 8px; border-radius: 7px; font-size: 12.5px; display: flex; gap: 8px; min-width: 0; white-space: nowrap; }
+.ways button:hover, .ways button.on { background: var(--card); }
+.ways button span { color: var(--faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11.5px; flex: 1; min-width: 0; }
+.ways { min-width: 0; }
+li { min-width: 0; }
+.empty { padding: 34px 18px; text-align: center; color: var(--muted); background: none; }
+.empty b { display: block; color: var(--ink); font-size: 14px; margin-bottom: 4px; }
+footer { display: flex; gap: 10px; padding: 8px 14px 10px; border-top: 1px solid var(--line); color: var(--faint); font-size: 11px; flex-wrap: wrap; }
+footer b { color: var(--muted); font-weight: 600; }
+.toast { position: fixed; left: 12px; right: 12px; bottom: 44px; padding: 10px 12px; border-radius: 11px; background: var(--ink); color: #fff; font-weight: 600; font-size: 13px; text-align: center; }
+@media (prefers-color-scheme: dark) { .toast { color: #0b0c10; } }
+.toast span { display: block; font-weight: 400; opacity: .75; font-size: 12px; }
+.menu { position: fixed; right: 10px; top: 46px; z-index: 3; background: var(--cardon); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); border: 1px solid var(--edge); border-radius: 11px; padding: 5px; min-width: 210px; box-shadow: 0 12px 30px -12px rgba(0, 0, 0, .35); }
+.menu button { display: block; width: 100%; text-align: left; border: 0; background: none; padding: 7px 10px; border-radius: 7px; font-size: 13px; }
+.menu button:hover { background: var(--card); }
+.menu hr { border: 0; border-top: 1px solid var(--line); margin: 4px 6px; }
 </style>
 </head>
 <body>
-<header><canvas id="pica" width="12" height="9" aria-hidden="true"></canvas><input id="q" placeholder="Find something you copied" autocomplete="off" spellcheck="false" aria-label="Find"></header>
-<nav class="tabs" id="tabs"></nav>
+<header>
+  <canvas id="pica" width="12" height="9" aria-hidden="true"></canvas>
+  <label class="find"><input id="q" placeholder="Find something you copied" autocomplete="off" spellcheck="false" aria-label="Find"><kbd id="keyHint"></kbd></label>
+  <button class="more" id="moreBtn" aria-label="More" title="More">⋯</button>
+</header>
+<nav class="chips" id="chips" aria-label="Show"></nav>
+<div class="paused" id="paused" hidden><span id="pausedTxt"></span><button id="resume">Start again</button></div>
 <ul id="list" role="listbox" aria-label="What you copied"></ul>
-<footer><span><b>↩</b> copy</span><span><b>⌘1–9</b> pick</span><span><b>⌘P</b> pin</span><span><b>esc</b> close</span></footer>
-<div class="done" id="done" hidden><div>Copied<span>Press ⌘V to paste it</span></div></div>
+<footer id="foot"><span><b>↩</b> copy</span><span><b>⇥</b> more ways</span><span><b>⌘P</b> pin</span><span><b>⌘⌫</b> forget</span><span><b>esc</b> close</span></footer>
+<div class="menu" id="menu" hidden>
+  <button data-m="window">Open magpie's window</button>
+  <button data-m="pause30">Don't keep anything for 30 min</button>
+  <button data-m="pause120">Don't keep anything for 2 hours</button>
+  <hr>
+  <button data-m="close">Close this panel</button>
+</div>
+<div class="toast" id="toast" hidden></div>
 <script id="config" type="application/json">__CONFIG__</script>
 <script>
 (function () {
   'use strict';
   var C = JSON.parse(document.getElementById('config').textContent);
   var $ = function (id) { return document.getElementById(id); };
-  var TABS = [['', 'All'], ['pinned', 'Pinned'], ['link', 'Links'], ['code', 'Code'], ['image', 'Pictures']];
-  var st = { list: [], at: 0, kind: '', q: '' };
+  var inPanel = /[?&]panel=1/.test(location.search);
+  if (!inPanel) document.body.classList.add('window');
+  var CHIPS = [['', 'All'], ['pinned', 'Pinned'], ['link', 'Links'], ['text', 'Text'], ['code', 'Code'], ['image', 'Pictures'], ['files', 'Files']];
+  var ICON = { link: '↗', email: '@', color: '■', phone: '☎', number: '#', path: '/', code: '{}', text: 'Aa', image: '▣', files: '▤' };
+  var st = { list: [], at: 0, kind: '', q: '', ways: null, wayAt: 0, status: {}, shown: true, busy: false, naming: false };
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
-  function ago(t) { var s = (Date.now() - t) / 1000; if (s < 50) return 'just now'; if (s < 3600) return Math.round(s / 60) + ' min'; if (s < 86400) return Math.round(s / 3600) + ' h'; return Math.round(s / 86400) + ' d'; }
-  function api(what, body) { return fetch(C.base + '/api/' + what, { method: 'POST', headers: { 'content-type': 'application/json', 'x-magpie': C.secret }, body: JSON.stringify(body || {}) }).then(function (r) { return r.json(); }); }
+  function ago(t) { var s = (Date.now() - t) / 1000; if (s < 50) return 'just now'; if (s < 3600) return Math.round(s / 60) + ' min ago'; if (s < 86400) return Math.round(s / 3600) + ' h ago'; return Math.round(s / 86400) + ' d ago'; }
+  function api(what, body) {
+    return fetch(C.base + '/api/' + what, { method: 'POST', headers: { 'content-type': 'application/json', 'x-magpie': C.secret }, body: JSON.stringify(body || {}) })
+      .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || 'magpie had a problem.'); return j; }); });
+  }
+  var toastT = 0;
+  function toast(a, b) { var t = $('toast'); t.innerHTML = esc(a) + (b ? '<span>' + esc(b) + '</span>' : ''); t.hidden = false; clearTimeout(toastT); toastT = setTimeout(function () { t.hidden = true; }, 1800); }
+
+  // Pica
   var PICA = ['............', '........kkk.', '.......kKEKY', '.......KKKk.', '.....kBbKWW.', '..GkBBWBWWW.', 'gGGkKKKKww..', 'g......L.L..', '............'];
   var INK = { K: '#15171c', k: '#3a4150', W: '#f7f7f4', w: '#c9ced6', B: '#2f62b8', b: '#6a9be6', G: '#1f7f78', g: '#45bfae', E: '#fff', L: '#4a505c', Y: '#59606e' };
-  if (matchMedia('(prefers-color-scheme: dark)').matches) { INK.K = '#2a3042'; INK.k = '#6a7694'; }
-  var g = $('pica').getContext('2d');
-  PICA.forEach(function (row, y) { row.split('').forEach(function (ch, x) { if (INK[ch]) { g.fillStyle = INK[ch]; g.fillRect(x, y, 1, 1); } }); });
+  function drawPica() {
+    var ink = Object.assign({}, INK);
+    if (matchMedia('(prefers-color-scheme: dark)').matches) { ink.K = '#2a3042'; ink.k = '#6a7694'; }
+    var g = $('pica').getContext('2d'); g.clearRect(0, 0, 12, 9);
+    PICA.forEach(function (row, y) { row.split('').forEach(function (ch, x) { if (ink[ch]) { g.fillStyle = ink[ch]; g.fillRect(x, y, 1, 1); } }); });
+  }
+  drawPica(); matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawPica);
 
-  function tabs() { $('tabs').innerHTML = TABS.map(function (t) { return '<button data-k="' + t[0] + '" aria-pressed="' + (st.kind === t[0]) + '">' + t[1] + '</button>'; }).join(''); }
-  function show(c) {
-    if (c.kind === 'image') return '<img alt="" src="' + esc(c.src) + '"> picture ' + (c.w || '') + (c.w ? '×' + c.h : '');
-    var t = (c.text || '').replace(/\s+/g, ' ').trim();
+  function chips() { $('chips').innerHTML = CHIPS.map(function (t) { return '<button data-k="' + t[0] + '" aria-pressed="' + (st.kind === t[0]) + '">' + t[1] + '</button>'; }).join(''); }
+  function body(c) {
+    if (c.kind === 'image') return '<img alt="A picture you copied" src="' + esc(c.src) + '">';
+    if (c.kind === 'files') return esc((c.files || []).map(function (f) { return f.split('/').pop(); }).join(', '));
+    var t = (c.text || '').replace(/\s+\n/g, '\n').trim();
     if (c.kind === 'color') return '<span class="sw" style="background:' + esc(t) + '"></span>' + esc(t);
-    return esc(t.slice(0, 160));
+    return (c.name ? '<b>' + esc(c.name) + '</b> ' : '') + esc(t.slice(0, 700));
   }
   function render() {
     var L = $('list');
-    if (!st.list.length) { L.innerHTML = '<li class="empty">' + (st.q ? 'Nothing matches.' : 'Nothing copied yet.') + '</li>'; return; }
+    var s = st.status || {};
+    $('paused').hidden = !s.pausedUntil;
+    if (s.pausedUntil) $('pausedTxt').textContent = 'Not keeping anything until ' + new Date(s.pausedUntil).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) + '.';
+    if (!st.list.length) {
+      L.innerHTML = '<li class="empty">' + (st.q || st.kind ? '<b>Nothing matches.</b>Try fewer words, or All.' : s.watching === false ? '<b>magpie isn\'t keeping things yet.</b>Type <code>magpie on</code> in Terminal.' : '<b>Nothing copied yet.</b>Copy something anywhere and it shows up here.') + '</li>';
+      return;
+    }
     L.innerHTML = st.list.map(function (c, i) {
-      return '<li role="option" data-i="' + i + '" class="' + (i === st.at ? 'on' : '') + '" aria-selected="' + (i === st.at) + '"><span class="n">' + (i < 9 ? i + 1 : '') + '</span><span class="t' + (c.kind === 'code' ? ' code' : '') + '">' + (c.name ? '<b>' + esc(c.name) + '</b> · ' : '') + show(c) + '</span>' +
-        '<span class="m">' + (c.pin ? '<span class="gem"></span>' : '') + ago(c.at) + (c.app ? ' · ' + esc(c.app) : '') + '</span></li>';
+      var on = i === st.at;
+      var acts = '';
+      if (on) {
+        acts = '<div class="acts"><button class="main" data-a="copy">Copy</button>' +
+          (c.text ? '<button data-a="ways">Copy changed…</button>' : '') +
+          '<button data-a="pin">' + (c.pin ? 'Unpin' : 'Pin') + '</button>' +
+          (c.text ? '<button data-a="name">' + (c.name ? 'Rename' : 'Name it') + '</button>' : '') +
+          (c.kind === 'link' ? '<button data-a="open">Open</button>' : '') +
+          (c.text && st.status.pigeon ? '<button data-a="send">To my devices</button>' : '') +
+          '<button class="del" data-a="del">Forget</button></div>';
+        if (st.naming) acts += '<form class="acts" id="nameForm"><input id="nameIn" value="' + esc(c.name || '') + '" placeholder="A name, to find it easily" style="flex:1;min-width:0;font:inherit;padding:5px 8px;border-radius:8px;border:1px solid var(--edge);background:var(--cardon);color:var(--ink);-webkit-user-select:text;user-select:text"><button class="main">Save</button></form>';
+        if (st.ways) acts += '<div class="ways">' + (st.ways.length ? st.ways.map(function (w, k) { return '<button data-w="' + k + '" class="' + (k === st.wayAt ? 'on' : '') + '">' + esc(w.label) + (w.preview ? '<span>' + esc(w.preview) + '</span>' : '') + '</button>'; }).join('') : '<span class="m">No changes for this one.</span>') + '</div>';
+      }
+      return '<li role="option" data-i="' + i + '" class="' + (on ? 'on' : '') + '" aria-selected="' + on + '"><div class="row"><span class="ic" style="--c:var(--k-' + esc(c.kind) + ', var(--muted))">' + (ICON[c.kind] || 'Aa') + '</span>' +
+        '<span class="t' + (c.kind === 'code' ? ' code' : '') + '">' + body(c) + '</span><span class="n">' + (i < 9 ? '⌘' + (i + 1) : '') + '</span>' +
+        '<span class="m">' + (c.pin ? '<span class="gem"></span>' : '') + ago(c.at) + (c.app ? ' · ' + esc(c.app) : '') + '</span></div>' + acts + '</li>';
     }).join('');
-    var on = L.querySelector('.on'); if (on) on.scrollIntoView({ block: 'nearest' });
+    var el = L.querySelector('.on'); if (el) el.scrollIntoView({ block: 'nearest' });
   }
   function load() {
-    api('list', { q: st.q, kind: st.kind, limit: 80 }).then(function (r) { st.list = r.clips; st.at = Math.min(st.at, Math.max(0, st.list.length - 1)); render(); });
+    return api('list', { q: st.q, kind: st.kind === 'pinned' ? 'pinned' : st.kind, limit: 120 }).then(function (r) {
+      var keep = st.list[st.at] && st.list[st.at].id;
+      st.list = r.clips; st.status = r.status || {};
+      var i = keep ? st.list.findIndex(function (c) { return c.id === keep; }) : -1;
+      st.at = i >= 0 ? i : Math.min(st.at, Math.max(0, st.list.length - 1));
+      $('keyHint').textContent = st.status.keyLabel || '';
+      render();
+    }).catch(function (e) { $('list').innerHTML = '<li class="empty"><b>magpie isn\'t answering.</b>' + esc(e.message) + '</li>'; });
   }
-  var closing = false;
-  function pick(i) {
+  function close() {
+    st.ways = null; $('menu').hidden = true;
+    if (inPanel) api('panel', { do: 'hide' }).catch(function () {}); else window.close();
+  }
+  function select(i) { st.at = Math.max(0, Math.min(st.list.length - 1, i)); st.ways = null; st.naming = false; render(); }
+  function copy(i, how) {
     var c = st.list[i];
-    if (!c || closing) return;
-    closing = true;
-    api('use', { id: c.id, back: true }).then(function () {
-      $('done').hidden = false;
-      setTimeout(function () { window.close(); }, 450);
-    });
+    if (!c || st.busy) return;
+    st.busy = true;
+    api('use', { id: c.id, how: how || undefined, back: !inPanel }).then(function () {
+      toast('Copied', 'Press ⌘V to paste it');
+      setTimeout(function () { st.busy = false; close(); }, 650);
+    }).catch(function (e) { st.busy = false; toast(e.message); });
   }
-  $('q').addEventListener('input', function () { st.q = this.value; st.at = 0; load(); });
-  $('tabs').onclick = function (e) { var b = e.target.closest('[data-k]'); if (!b) return; st.kind = b.dataset.k; st.at = 0; tabs(); load(); $('q').focus(); };
-  $('list').onclick = function (e) { var li = e.target.closest('[data-i]'); if (li) pick(Number(li.dataset.i)); };
-  document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') { window.close(); return; }
-    if (e.key === 'ArrowDown') { e.preventDefault(); st.at = Math.min(st.list.length - 1, st.at + 1); render(); }
-    else if (e.key === 'ArrowUp') { e.preventDefault(); st.at = Math.max(0, st.at - 1); render(); }
-    else if (e.key === 'Enter') { e.preventDefault(); pick(st.at); }
-    else if ((e.metaKey || e.ctrlKey) && /^[1-9]$/.test(e.key)) { e.preventDefault(); pick(Number(e.key) - 1); }
-    else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'p') { e.preventDefault(); var c = st.list[st.at]; if (c) api('pin', { id: c.id, on: !c.pin }).then(load); }
-    else if (e.key === 'Tab') { e.preventDefault(); var i = TABS.findIndex(function (t) { return t[0] === st.kind; }); st.kind = TABS[(i + (e.shiftKey ? TABS.length - 1 : 1)) % TABS.length][0]; st.at = 0; tabs(); load(); }
+  function act(a) {
+    var c = st.list[st.at];
+    if (!c) return;
+    if (a === 'copy') return copy(st.at);
+    if (a === 'ways') {
+      if (st.ways) { st.ways = null; render(); return; }
+      return api('ways', { id: c.id }).then(function (r) { st.ways = r.ways || []; st.wayAt = 0; render(); });
+    }
+    if (a === 'pin') return api('pin', { id: c.id, on: !c.pin }).then(function () { toast(c.pin ? 'Unpinned' : 'Pinned', c.pin ? '' : 'It stays until you unpin it'); load(); });
+    if (a === 'del') return api('delete', { id: c.id }).then(function () { toast('Forgotten'); load(); });
+    if (a === 'open') return api('open', { id: c.id }).then(close).catch(function (e) { toast(e.message); });
+    if (a === 'send') return api('send', { id: c.id }).then(function () { toast('Sent to your devices'); }).catch(function (e) { toast(e.message); });
+    if (a === 'name') { st.naming = true; st.ways = null; render(); var f = $('nameIn'); if (f) { f.focus(); f.select(); } }
+  }
+
+  $('q').addEventListener('input', function () { st.q = this.value; st.at = 0; st.ways = null; load(); });
+  $('chips').onclick = function (e) { var b = e.target.closest('[data-k]'); if (!b) return; st.kind = b.dataset.k; st.at = 0; st.ways = null; chips(); load(); $('q').focus(); };
+  $('list').onclick = function (e) {
+    var w = e.target.closest('[data-w]'); if (w) { copy(st.at, st.ways[+w.dataset.w].id); return; }
+    var a = e.target.closest('[data-a]'); if (a) { act(a.dataset.a); return; }
+    var li = e.target.closest('[data-i]'); if (!li) return;
+    var i = Number(li.dataset.i);
+    if (i === st.at) copy(i); else select(i);
+  };
+  $('list').ondblclick = function (e) { var li = e.target.closest('[data-i]'); if (li) copy(Number(li.dataset.i)); };
+  $('list').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var c = st.list[st.at], f = $('nameIn'); if (!c || !f) return;
+    api('name', { id: c.id, name: f.value.trim() }).then(function () { st.naming = false; toast(f.value.trim() ? 'Named' : 'Name removed'); load(); $('q').focus(); });
   });
-  window.addEventListener('blur', function () { if (!closing) setTimeout(function () { if (!document.hasFocus()) window.close(); }, 300); });
-  tabs(); load(); $('q').focus();
+  $('resume').onclick = function () { api('pause', { minutes: 0 }).then(load); };
+  $('moreBtn').onclick = function () { $('menu').hidden = !$('menu').hidden; };
+  $('menu').onclick = function (e) {
+    var b = e.target.closest('[data-m]'); if (!b) return;
+    $('menu').hidden = true;
+    var m = b.dataset.m;
+    if (m === 'window') api('window').then(close);
+    else if (m === 'pause30' || m === 'pause120') api('pause', { minutes: m === 'pause30' ? 30 : 120 }).then(function () { toast('Paused'); load(); });
+    else if (m === 'close') close();
+  };
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { e.preventDefault(); if (!$('menu').hidden) $('menu').hidden = true; else if (st.naming) { st.naming = false; render(); $('q').focus(); } else if (st.ways) { st.ways = null; render(); } else close(); return; }
+    if (st.naming) return;
+    var cmd = e.metaKey || e.ctrlKey;
+    if (st.ways && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) { e.preventDefault(); st.wayAt = Math.max(0, Math.min(st.ways.length - 1, st.wayAt + (e.key === 'ArrowDown' ? 1 : -1))); render(); return; }
+    if (e.key === 'ArrowDown') { e.preventDefault(); select(st.at + 1); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); select(st.at - 1); }
+    else if (e.key === 'Enter') { e.preventDefault(); if (st.naming) return; if (st.ways && st.ways[st.wayAt]) copy(st.at, st.ways[st.wayAt].id); else copy(st.at); }
+    else if (e.key === 'Tab') { e.preventDefault(); act('ways'); }
+    else if (cmd && /^[1-9]$/.test(e.key)) { e.preventDefault(); copy(Number(e.key) - 1); }
+    else if (cmd && e.key.toLowerCase() === 'p') { e.preventDefault(); act('pin'); }
+    else if (cmd && e.key === 'Backspace') { e.preventDefault(); act('del'); }
+    else if (cmd && e.key.toLowerCase() === 'o') { e.preventDefault(); act('open'); }
+  });
+  if (!inPanel) window.addEventListener('blur', function () { setTimeout(function () { if (!document.hasFocus() && !st.busy) window.close(); }, 400); });
+
+  // the panel tells us when it opens and closes
+  window.panelShown = function () { st.shown = true; st.q = ''; $('q').value = ''; st.kind = ''; st.at = 0; st.ways = null; chips(); load(); setTimeout(function () { $('q').focus(); }, 30); };
+  window.panelHidden = function () { st.shown = false; $('toast').hidden = true; $('menu').hidden = true; };
+  // while it's open, new copies show up by themselves
+  setInterval(function () { if (st.shown && !st.busy && !st.naming && !st.ways) load(); }, 2500);
+  chips(); load(); $('q').focus();
 })();
 </script>
 </body>

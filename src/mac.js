@@ -12,6 +12,13 @@ const path = require('path');
 const crypto = require('crypto');
 const { home } = require('./store');
 const Mac = require('./macos')({ app: 'magpie', label: 'dev.dpatel7.magpie', home });
+const Pica = require('./bird');
+
+// the side panel and the magpie in the menu bar (see panel.js)
+const panel = require('./panel')({
+  app: 'magpie', home, title: 'magpie', width: 380, height: 640, tooltip: 'magpie: what you copied',
+  icon: { grid: Pica.MINI, ink: { ...Pica.INK, K: '#2a3042', k: '#6a7694' } },
+});
 
 const SCRIPT = path.join(__dirname, '..', 'bin', 'magpie.js');
 const SERVICE = 'Magpie: pick something you copied';
@@ -219,18 +226,21 @@ function screen() {
 }
 
 /** Start magpie at login (watching the clipboard), and make its two apps. */
-function setUp(version) {
+function setUp(version, combo = '^~v') {
   const icon = path.join(__dirname, '..', 'assets', 'magpie.icns');
   Mac.makeApp({ name: 'Magpie', id: 'dev.dpatel7.magpie.app', args: ['app'], icon, script: SCRIPT, version });
   Mac.makeApp({ name: 'Magpie Picker', id: 'dev.dpatel7.magpie.picker', args: ['pick'], icon, script: SCRIPT, version });
-  return Mac.startAgent({ args: ['serve'], script: SCRIPT });
+  const r = Mac.startAgent({ args: ['serve'], script: SCRIPT });
+  const p = panel.setUp({ combo });
+  return { ...r, panel: p };
 }
 
 function tearDown() {
+  panel.tearDown();
   Mac.stopAgent();
   Mac.removeApp('Magpie');
   Mac.removeApp('Magpie Picker');
   removeKey();
 }
 
-module.exports = { ...Mac, screen, keyCombo, workflowFiles, setKey, removeKey, setUp, tearDown, SERVICE, SCRIPT, workflowDir };
+module.exports = { ...Mac, panel, screen, keyCombo, workflowFiles, setKey, removeKey, setUp, tearDown, SERVICE, SCRIPT, workflowDir };

@@ -158,3 +158,14 @@ test('the command line', () => {
   assert.equal(fs.readFileSync(process.env.MAGPIE_FAKE_CLIPBOARD, 'utf8'), 'FIRST THING');
   assert.match(run('nonsense').stderr, /isn't a magpie command/);
 });
+
+test('the side panel: its menu bar icon is a real PNG, and key combos become Carbon codes', () => {
+  const Panel = require('../src/panel');
+  const Pica = require('../src/bird');
+  const png = Panel.png(Pica.MINI, Pica.INK, { scale: 2, size: 36 });
+  assert.equal(png.slice(1, 4).toString(), 'PNG');
+  assert.equal(png.readUInt32BE(16), 36);
+  assert.deepEqual(Panel.carbonKey('^~v'), { code: 9, mods: 6144 });
+  assert.equal(Panel.carbonKey('^~?'), null);
+  assert.doesNotThrow(() => new Function(Panel.HOST));
+});

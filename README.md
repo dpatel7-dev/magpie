@@ -35,10 +35,12 @@ administrator and changes no settings on your Mac except its own key combo.
 
 | To | Do this |
 | --- | --- |
-| Paste something from earlier | **⌃⌥V** in any app (or ⌘Space, type *picker*, Enter). Type to find it, **Enter** copies it and takes you back. Then **⌘V**. |
-| Pick one of the first nine | **⌘1** … **⌘9** in the picker |
+| Paste something from earlier | Click the **magpie in the menu bar** (top right of the screen), or press **⌃⌥V** in any app. The side panel slides in at the right. Type to find it, **Enter** copies it, then **⌘V**. |
+| Pick one of the first nine | **⌘1** … **⌘9** in the panel |
+| Do more with one | Click it once (or use the arrows): Copy, Copy changed… (with a preview of each), Pin, Name it, Open, To my devices, Forget |
 | See everything | `magpie app` (or open **Magpie** from Spotlight): search, filters, pictures, pins |
-| In Terminal | `magpie` shows the latest; type a number to copy it again. `magpie copy 3`, `magpie list homework` |
+| In Terminal | `magpie`: type to find, arrows to choose, Enter copies it. Or `magpie copy 3`, `magpie list homework` |
+| Something doesn't work | `magpie doctor` checks every part |
 | Keep something forever | ★ in the window, ⌘P in the picker, or `magpie pin 3`. Give it a name: ⋯ › *Give it a name* |
 | Change it as you copy it | ⋯ › *Copy it as*: a link without trackers, tidy spaces, UPPERCASE, one line, sorted lines, pretty JSON… or `magpie copy 2 --as url` |
 | Copy several at once | click them in the window, then *Copy them together* |
@@ -46,15 +48,18 @@ administrator and changes no settings on your Mac except its own key combo.
 | Stop for a while | *Pause for 30 min* in the window, or `magpie pause 1h` |
 | Forget things | 🗑 in the window, `magpie forget 3`, or `magpie forget all` (pinned things stay) |
 
-### The key combo
+### The side panel and the key combo
 
-macOS lets an app add a key combo for every app without an administrator in one way: a
-"service" (a little Automator workflow in `~/Library/Services`). `magpie on` makes one and gives it
-**⌃⌥V**. Change it with `magpie key cmd+shift+v` or in the window's settings.
+The panel is a small floating strip of Apple's frosted glass at the right of the screen. It doesn't
+take over: the app you were using stays the active one, and you can leave the panel open while you
+work. Esc closes it.
 
-If it does nothing the first time, log out and back in once: macOS reads new key combos then. You
-can also check it in **System Settings › Keyboard › Keyboard Shortcuts › Services › General ›
-Magpie: pick something you copied**. And ⌘Space › *picker* always works.
+`magpie on` puts a magpie in the menu bar; clicking it always opens the panel. It also claims
+**⌃⌥V** for the whole Mac (macOS lets apps do that without any permission). Change it with
+`magpie key cmd+shift+b`. If another app already uses that combo, `magpie doctor` says so.
+
+There's also a spare: a macOS "service" with the same key combo, in **System Settings › Keyboard ›
+Keyboard Shortcuts › Services › General › Magpie: pick something you copied**.
 
 ## What's kept, and what isn't
 
@@ -73,8 +78,9 @@ websites can't read your history.
 
 A small JavaScript-for-Automation program (macOS's own scripting, nothing to install) checks the
 clipboard's change counter a few times a second, which costs next to nothing, and tells magpie what
-was copied and from which app. The window opens in Chrome, Edge or Brave as an app window if you have
-one; otherwise the picker uses macOS's own list. On Linux and Windows magpie checks the clipboard
+was copied and from which app. The side panel is another small one: a floating panel with a web view
+inside, and the menu bar icon. magpie's full window opens in Chrome, Edge or Brave as an app window if
+you have one. On Linux and Windows magpie checks the clipboard
 every second while it's running (`magpie app`).
 
 No dependencies: just Node.js 18+.

@@ -27,7 +27,7 @@ const HELP = `
 
   magpie                 what you copied lately (type a number to copy it again)
   magpie on              start: keep what you copy from now on, and set up the key combo
-  magpie pick            the little picker (what the key combo opens)
+  magpie pick            the side panel (what the key combo and the magpie in the menu bar open)
   magpie app             magpie's window: search, pins, pictures, quick changes
   magpie list [words]    everything you copied (or what matches)
   magpie copy <n|words>  put one back on the clipboard      --as lower|upper|title|trim|oneline|url…
@@ -35,7 +35,7 @@ const HELP = `
   magpie forget <n>      delete one      magpie forget all   (pinned ones stay)
   magpie pause [30m]     stop keeping things for a while    magpie resume
   magpie key <combo>     change the key combo (it starts as ctrl+option+v)
-  magpie status          what magpie is doing
+  magpie status          what magpie is doing     magpie doctor   check every part, if something doesn't work
   magpie off             stop keeping things (what's kept stays)
   magpie update · uninstall · help · --version
 `;
@@ -127,7 +127,8 @@ async function main(argv) {
       if (await ensureRunning() && await require('./server').openWindow('app')) { out(`  ${ok('✓')} magpie's window is open.`); return; }
       return runHere('app');
     }
-    case 'pick': case 'picker': {
+    case 'pick': case 'picker': case 'panel': case 'side': {
+      if (MAC && (await require('./mac').panel.show())) return;
       if (await require('./server').openWindow('pick')) return;
       if (await ensureRunning() && await require('./server').openWindow('pick')) return;
       return runHere('pick');
@@ -199,6 +200,7 @@ async function main(argv) {
       out('');
       return;
     }
+    case 'doctor': case 'check': return doctor();
     case 'update': return update();
     case 'uninstall': return uninstall();
     default: throw new Error(`"${cmd}" isn't a magpie command. Try: magpie help`);
@@ -213,14 +215,98 @@ async function home() {
     dim(`${Pica.NAME} keeps the shiny things.`),
   ]);
   if (!t.st.running && MAC) out(`  ${dim('○')} Not keeping things yet. Start with: ${bold('magpie on')}\n`);
+  if (!process.stdin.isTTY) { show(new Store.Clips().list, { max: 9 }); return; }
+  return browse();
+}
+
+/** What you copied, right here in the terminal: type to find, arrows to choose, Enter copies it. */
+function browse() {
+  return new Promise((resolve) => {
+    let q = '', at = 0, note = '', drawn = 0;
+    const clips = new Store.Clips();
+    const width = () => Math.max(30, Math.min(90, (process.stdout.columns || 80) - 26));
+    const list = () => clips.reload().search(q).slice(0, 9);
+    const draw = () => {
+      const L = list();
+      at = Math.max(0, Math.min(at, L.length - 1));
+      process.stdout.write('\x1b[?25l' + (drawn ? `\x1b[${drawn}A` : '') + '\r\x1b[J');
+      const lines = [`  ${teal('›')} ${q || dim('type to find something you copied')}`, ''];
+      if (!L.length) lines.push(dim(q ? '  Nothing matches.' : '  Nothing copied yet. Copy something, then come back.'));
+      L.forEach((c, i) => lines.push((i === at ? blue('▸') : ' ') + line(c, i, width()).slice(1)));
+      lines.push('', dim('  ↑↓ choose · Enter copies it · Tab opens the side panel · Esc leaves') + (note ? '\n  ' + note : ''));
+      const text = lines.join('\n') + '\n';
+      drawn = text.split('\n').length - 1;
+      process.stdout.write(text);
+    };
+    const finish = (msg) => {
+      process.stdin.removeListener('keypress', onKey);
+      if (process.stdin.isTTY) process.stdin.setRawMode(false);
+      process.stdin.pause();
+      process.stdout.write((drawn ? `\x1b[${drawn}A` : '') + '\r\x1b[J\x1b[?25h');
+      drawn = 0;
+      if (msg) out(msg);
+      resolve();
+    };
+    const onKey = async (str, k = {}) => {
+      if (k.ctrl && k.name === 'c') return finish('');
+      if (k.name === 'escape') return finish(dim('  Bye.'));
+      if (k.name === 'up') at--;
+      else if (k.name === 'down') at++;
+      else if (k.name === 'backspace') q = q.slice(0, -1);
+      else if (k.name === 'return' || k.name === 'enter') {
+        const c = list()[at];
+        if (!c) return draw();
+        try { require('./server').copy(c); clips.used(c.id); } catch (e) { note = bad(e.message); return draw(); }
+        return finish(`  ${ok('✓')} On the clipboard: ${dim(String(c.text || 'a picture').replace(/\s+/g, ' ').slice(0, 60))}  ${dim('(⌘V to paste)')}`);
+      } else if (k.name === 'tab') {
+        finish('');
+        return main(['pick']).catch((e) => out(`  ${bad('!')} ${e.message}`));
+      } else if (str && !k.ctrl && !k.meta && str.length === 1 && str >= ' ') { q += str; at = 0; }
+      note = '';
+      draw();
+    };
+    readline.emitKeypressEvents(process.stdin);
+    process.stdin.setRawMode(true);
+    process.stdin.resume();
+    process.stdin.on('keypress', onKey);
+    draw();
+  });
+}
+
+/** Check every part and say plainly what works and what doesn't. */
+async function doctor() {
+  const Server = require('./server');
+  const Local = require('./local');
+  const t = status();
+  const yes = (s) => out(`  ${ok('✓')} ${s}`);
+  const no = (s, fix) => out(`  ${bad('!')} ${s}${fix ? `\n      ${dim(fix)}` : ''}`);
+  out(`\n  ${blue('magpie')} ${dim('v' + pkg.version)}: checking every part\n`);
+  if (!MAC) { out('  On this computer magpie runs in a window: magpie app. (The menu bar, panel and key combo are for Macs.)\n'); return; }
+  const Mac = require('./mac');
+  const port = Server.runningPort();
+  const alive = port && (await Local.alive(port));
+  if (alive) yes(`The background part is running (port ${port}).`);
+  else no('The background part isn\'t running.', t.st.installed ? 'It should start by itself. Try: magpie on' : 'Start it: magpie on');
   const clips = new Store.Clips();
-  show(clips.list, { max: 9 });
-  if (!process.stdin.isTTY) return;
+  const last = clips.list[0];
+  if (last) yes(`Last thing kept: ${ago(last.at)}${last.app ? ' from ' + last.app : ''} (${clips.list.length} kept, ${t.s.skipped || 0} passwords and keys skipped).`);
+  else no('Nothing kept yet.', 'Copy something (⌘C), wait a second, then run magpie doctor again.');
+  if (t.paused) no(`Paused until ${new Date(t.paused).toLocaleTimeString()}.`, 'magpie resume starts again now.');
+  const p = Mac.panel.status();
+  if (p.running) yes('The side panel is running: the magpie in the menu bar (top right of the screen) opens it.');
+  else no('The side panel isn\'t running.', `${p.err ? 'It said: ' + p.err + '. ' : ''}magpie on starts it. Until then, magpie pick opens a window at the side instead.`);
+  if (p.running && p.hotkey === 'carbon') yes(`The key combo ${t.key || '⌃⌥V'} belongs to magpie.`);
+  else if (p.running) no(`The key combo isn't magpie's${p.hotkeyWhy ? ` (${p.hotkeyWhy})` : ''}.`, 'Clicking the magpie in the menu bar always works. Another key combo: magpie key ctrl+option+b');
+  const svc = fs.existsSync(path.join(Mac.workflowDir(), 'Contents', 'document.wflow'));
+  out(`  ${svc ? ok('✓') : dim('·')} The spare key combo (a macOS service) ${svc ? 'is set up' : 'isn\'t set up'}.`);
+  out(`  ${require('./open').canWindow() ? ok('✓') : dim('·')} ${require('./open').canWindow() ? 'Chrome (or Edge/Brave) is here for magpie\'s window.' : 'No Chrome, Edge or Brave: windows open in your normal browser.'}`);
+  for (const [name, f] of [['background part', 'magpie.log'], ['side panel', 'panel.log']]) {
+    let text = '';
+    try { text = fs.readFileSync(path.join(Store.home(), f), 'utf8'); } catch { continue; }
+    const tail = text.trim().split('\n').slice(-4).filter(Boolean);
+    if (tail.length) { out(dim(`\n  The ${name}'s last notes (${path.join(Store.home(), f)}):`)); tail.forEach((l) => out(dim('    ' + l.slice(0, 160)))); }
+  }
   out('');
-  const a = (await ask(`  ${dim('Type a number to copy it again, words to search, or Enter for the window: ')}`)).trim();
-  if (!a) return main(['app']);
-  if (/^\d+$/.test(a)) return main(['copy', a]);
-  return main(['list', a]);
 }
 
 async function on() {
@@ -230,13 +316,17 @@ async function on() {
     return runHere('app');
   }
   const Mac = require('./mac');
-  const r = Mac.setUp(pkg.version);
+  const key = Store.settings.load().key;
+  const r = Mac.setUp(pkg.version, key);
   if (!r.ok) throw new Error(`macOS didn't start magpie (${r.why}). You can still run it in a window: magpie serve`);
-  const k = Mac.setKey(Store.settings.load().key);
+  const k = Mac.setKey(key);
   out(`  ${ok('✓')} magpie keeps what you copy from now on, and every time you log in.`);
-  out(`  ${ok('✓')} Press ${blue(k.label)} ${dim('(control + option + V)')} anywhere to pick something you copied.`);
-  out(dim('    If it does nothing at first, log out and back in once (macOS reads new key combos then).'));
-  out(dim('    Or: ⌘Space, type "picker", Enter. That always works.'));
+  let p = Mac.panel.status();
+  for (let i = 0; i < 15 && !p.running; i++) { await new Promise((res) => setTimeout(res, 300)); p = Mac.panel.status(); }
+  if (p.running) out(`  ${ok('✓')} There's a magpie in your menu bar (top right of the screen): click it for the side panel.`);
+  else out(`  ${dim('·')} The menu bar magpie is starting. If it doesn't appear, run: magpie doctor`);
+  if (p.hotkey === 'carbon') out(`  ${ok('✓')} Or press ${blue(k.label)} ${dim('(control + option + V)')} in any app.`);
+  else out(`  ${dim('·')} The key combo ${blue(k.label)} may need you to log out and back in once. The menu bar magpie always works.`);
   out(`  ${ok('✓')} Passwords and keys are skipped. Nothing leaves this computer.`);
   out(`\n  ${dim('Its window: magpie app · what you copied: magpie')}\n`);
 }
