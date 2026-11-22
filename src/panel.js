@@ -16,6 +16,8 @@
 //   const P = require('./panel')({ app: 'magpie', home, title: 'magpie', width: 380, height: 600,
 //                                  icon: { grid, ink }, hotkey: '^~v' })
 //   P.setUp({ url })   P.show()   P.hide()   P.toggle()   P.status()   P.tearDown()
+//   P.resize({ width, height, where: 'side' | 'corner' })   (kept for next time)
+//   P.upgrade()        (after an update: swap in the newest panel program)
 
 const fs = require('fs');
 const os = require('os');
@@ -77,13 +79,15 @@ function readText(p) { var s = $.NSString.stringWithContentsOfFileEncodingError(
 function writeText(p, t) { $(t).writeToFileAtomicallyEncodingError($(p), true, $.NSUTF8StringEncoding, null); }
 function note(o) { try { o.pid = $.NSProcessInfo.processInfo.processIdentifier; o.at = Date.now(); o.hotkey = hotkey; o.hotkeyWhy = hotkeyWhy; o.visible = !!(panel && panel.isVisible); writeText(cfg.statusFile, JSON.stringify(o)); } catch (e) {} }
 function pageUrl() { var u = readText(cfg.urlFile).trim(); return u || cfg.url || ''; }
-function place() {
+// where it sits: the middle of the right edge ('side'), or tucked in the bottom right corner ('corner')
+function place(animate) {
   var scr = $.NSScreen.mainScreen;
   if (scr.isNil()) return;
   var vf = scr.visibleFrame;
   var w = cfg.width, h = Math.min(cfg.height, vf.size.height - 20);
   var x = vf.origin.x + vf.size.width - w - 10;
-  var y = vf.origin.y + Math.round((vf.size.height - h) / 2);
+  var y = cfg.where === 'corner' ? vf.origin.y + 12 : vf.origin.y + Math.round((vf.size.height - h) / 2);
+  if (animate && panel.isVisible) { panel.setFrameDisplayAnimate($.NSMakeRect(x, y, w, h), true, true); return; }
   panel.setFrameDisplay($.NSMakeRect(x, y, w, h), true);
   fx.setFrame($.NSMakeRect(0, 0, w, h));
   web.setFrame($.NSMakeRect(0, 0, w, h));
@@ -116,8 +120,9 @@ function tick() {
     var c = readText(cfg.cmdFile).trim();
     if (c && c !== lastSeq) {
       lastSeq = c;
-      var what = c.split(' ')[1] || '';
-      if (what === 'show') show(); else if (what === 'hide') hide(); else if (what === 'toggle') toggle(); else if (what === 'reload') { loaded = ''; if (panel.isVisible) show(); } else if (what === 'quit') { note({ ok: false, quit: true }); $.NSApplication.sharedApplication.terminate(null); }
+      var parts = c.split(' '), what = parts[1] || '';
+      if (what === 'size') { cfg.width = Number(parts[2]) || cfg.width; cfg.height = Number(parts[3]) || cfg.height; cfg.where = parts[4] || 'side'; if (panel.isVisible) place(true); }
+      else if (what === 'show') show(); else if (what === 'hide') hide(); else if (what === 'toggle') toggle(); else if (what === 'reload') { loaded = ''; if (panel.isVisible) show(); } else if (what === 'quit') { note({ ok: false, quit: true }); $.NSApplication.sharedApplication.terminate(null); }
     }
     if (++beat % 12 === 0) { note({ ok: true }); look(); }
   } catch (e) { note({ ok: false, err: String(e) }); }
@@ -207,7 +212,7 @@ module.exports = function Panel({ app, home, title = app, width = 380, height = 
   function setUrl(url) { const f = files(); fs.mkdirSync(dir(), { recursive: true }); fs.writeFileSync(f.url, url); }
 
   /** Write the panel program and start it at login. Returns { ok, why }. */
-  function setUp({ url, combo = hotkey, showAtStart = false } = {}) {
+  function setUp({ url, combo = hotkey, showAtStart = false, size = null } = {}) {
     if (!MAC) return { ok: false, why: 'The side panel is for Macs.' };
     const f = files();
     fs.mkdirSync(dir(), { recursive: true });
@@ -215,7 +220,8 @@ module.exports = function Panel({ app, home, title = app, width = 380, height = 
     if (icon) fs.writeFileSync(f.icon, png(icon.grid, icon.ink, { scale: 2, size: 36 }));
     if (url) setUrl(url);
     const key = combo ? carbonKey(combo) : null;
-    fs.writeFileSync(f.conf, JSON.stringify({ app, title, width, height, material, tooltip: tooltip || title, icon: f.icon, urlFile: f.url, cmdFile: f.cmd, statusFile: f.status, hotkey: key, showAtStart, lookFile: require('./look').file() }, null, 1));
+    const sz = size || {};
+    fs.writeFileSync(f.conf, JSON.stringify({ app, title, width: sz.width || width, height: sz.height || height, where: sz.where || 'side', material, tooltip: tooltip || title, icon: f.icon, urlFile: f.url, cmdFile: f.cmd, statusFile: f.status, hotkey: key, showAtStart, lookFile: require('./look').file() }, null, 1));
     return Mac.startAgent({ program: ['/usr/bin/osascript', '-l', 'JavaScript', f.host, f.conf], keepAlive: true, interactive: true });
   }
 
@@ -236,6 +242,29 @@ module.exports = function Panel({ app, home, title = app, width = 380, height = 
     for (let i = 0; i < 12; i++) { await new Promise((r) => setTimeout(r, 120)); if (status().visible) return true; }
     return status().running;
   }
+  /** Change the panel's size and where it sits ('side' or 'corner'). Remembered when it starts again. */
+  function resize({ width: w = width, height: h = height, where = 'side' } = {}) {
+    w = Math.round(w); h = Math.round(h);
+    const f = files();
+    try {
+      const c = JSON.parse(fs.readFileSync(f.conf, 'utf8'));
+      Object.assign(c, { width: w, height: h, where });
+      fs.writeFileSync(f.conf, JSON.stringify(c, null, 1));
+    } catch { /* not set up yet */ }
+    if (MAC) send(`size ${w} ${h} ${where}`);
+  }
+
+  /** After an update: if the panel program on disk is an older one, swap in this one (it restarts by itself). */
+  function upgrade() {
+    const f = files();
+    let old = null;
+    try { old = fs.readFileSync(f.host, 'utf8'); } catch { return false; }
+    if (old === HOST) return false;
+    fs.writeFileSync(f.host, HOST);
+    if (status().running) send('quit'); // it's kept running, so it starts again with the new program
+    return true;
+  }
+
   const hide = () => send('hide');
   const toggle = () => send('toggle');
   const reload = () => send('reload');
@@ -258,7 +287,7 @@ module.exports = function Panel({ app, home, title = app, width = 380, height = 
     for (const k of ['host', 'conf', 'icon', 'status', 'cmd']) fs.rmSync(f[k], { force: true });
   }
 
-  return { setUp, setUrl, status, show, hide, toggle, reload, openSide, tearDown, files, HOST };
+  return { setUp, setUrl, status, show, hide, toggle, reload, resize, upgrade, openSide, tearDown, files, HOST };
 };
 module.exports.png = png;
 module.exports.carbonKey = carbonKey;
